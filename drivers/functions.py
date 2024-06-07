@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Aug 28 18:11:06 2018
 
-@author: chentir
-"""
 import pyvisa as visa
 import time
 
@@ -111,7 +107,8 @@ def Scan(Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle):
         TSL.write('WAV:SWE:REP')
         TSL.write('WAV:SWE:CYCL ' + str(Cycle))
 
-    if Swp_mod == 1 or Swp_mod == 3:  # if Continuous scan modes (one way or two ways) areselected, Arg1 and Arg2 = Scan speed, trigger output step
+    if Swp_mod == 1 or Swp_mod == 3:  # if Continuous scan modes (one way or two ways) are selected,
+        # Arg1 and Arg2 = Scan speed, trigger output step
         TSL.write('WAV:SWE:SPE ' + str(Arg1))
         TSL.write('TRIG:OUTP:STEP ' + str(Arg2))
         TSL.write('WAV:SWE:STAT 1')
@@ -143,8 +140,8 @@ def Del_change(delimiter):
     TSL.write('SYST:COMM:GPIB:DEL ' + str(delimiter))
 
 
-def TrigSrc(Trigg):
-    TSL.write('TRIG:INP:EXT ' + str(Trigg))
+def TrigSrc(trigg):
+    TSL.write('TRIG:INP:EXT ' + str(trigg))
 
 
 def TrigMode(Mode):

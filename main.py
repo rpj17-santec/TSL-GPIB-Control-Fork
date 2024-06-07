@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Oct 17 19:07:59 2018
 
-@author: chentir
-"""
 import sys
 from PyQt5 import QtCore, QtWidgets, QtGui
 import pyvisa as visa
@@ -13,75 +9,76 @@ from drivers import functions, TSL_Control_Tool_GUI
 global TSL
 
 
-################### FUNCTIONS DEFINITIONS #####################################
-def LDON():
+# FUNCTIONS DEFINITIONS
+
+def ld_on():
     TSL.write("POW:STAT 1")
 
 
-def LDOFF():
+def ld_off():
     TSL.write("POW:STAT 0")
 
 
-def PwrAuto():
+def pwr_auto():
     TSL.write('POW:ATT:AUT 1')
 
 
-def PwrMan():
+def pwr_man():
     TSL.write('POW:ATT:AUT 0')
 
 
-def ShutOp():
+def shut_op():
     TSL.write('POW:SHUT 0')
     time.sleep(0.1)
-    GetPwr()
-    GetAtt()
+    get_pwr()
+    get_att()
 
 
-def ShutClo():
+def shut_close():
     TSL.write('POW:SHUT 1')
     time.sleep(0.1)
-    GetPwr()
-    GetAtt()
+    get_pwr()
+    get_att()
 
 
-def SetLambda():
+def set_lambda():
     WriteLambda = round(float(ui.lambda_input.text()), 4)
     functions.SetWL(WriteLambda)
     time.sleep(0.1)
-    GetLambda()
-    GetPwr()
-    GetAtt()
+    get_lambda()
+    get_pwr()
+    get_att()
 
 
-def GetLambda():
+def get_lambda():
     ui.lambda_disp.setText(functions.GetWL())
 
 
-def SetPwr():
+def set_pwr():
     WritePwr = round(float(ui.Pwr_input.text()), 2)
     functions.SetPwr(WritePwr)
     time.sleep(0.1)
-    GetPwr()
-    GetAtt()
+    get_pwr()
+    get_att()
 
 
-def GetPwr():
+def get_pwr():
     ui.Pwr_disp.setText(functions.GetPwr())
 
 
-def SetAtt():
+def set_att():
     WriteAtt = round(float(ui.Att_input.text()), 2)
     functions.SetAtt(WriteAtt)
     time.sleep(0.1)
-    GetPwr()
-    GetAtt()
+    get_pwr()
+    get_att()
 
 
-def GetAtt():
+def get_att():
     ui.Att_disp.setText(functions.GetAtt())
 
 
-def Get_Data():
+def get_data():
     WLstart = ui.lambdaStart_input.text()
     WLend = ui.lambdaEnd_input.text()
     Swp_mod = ui.Swp_mod_input.currentIndex()
@@ -100,55 +97,54 @@ def Get_Data():
     return Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle
 
 
-def Auto_Start():
-    Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle = Get_Data()
+def auto_start():
+    Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle = get_data()
     functions.Auto_Start(Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle)
 
 
-def Trig_Start():
-    Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle = Get_Data()
+def trig_start():
+    Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle = get_data()
     functions.Trig_Start(Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle)
 
 
-def Del_change():
+def del_change():
     functions.Del_change(ui.GPIB_DEL_input.currentIndex())
 
 
-def CC_Off():
+def cc_off():
     TSL.write('COHC 0')
 
 
-def CC_On():
+def cc_on():
     TSL.write('COHC 1')
 
 
-def AM_ON():
+def am_on():
     TSL.write('AM:STATE 1')
 
 
-def AM_OFF():
+def am_off():
     TSL.write('AM:STATE 0')
 
 
-def TrigSrc():
+def trig_src():
     functions.TrigSrc(ui.TrigSrc_input.currentIndex())
 
 
-def TrigMode():
+def trig_mode():
     functions.TrigMode(ui.TrigMode_input.currentIndex())
 
 
-def Stop():
+def stop():
     TSL.write('WAV:SWE 0')
 
 
-################### CODE START ################################################
 app = QtCore.QCoreApplication.instance()
 if app is None:
     app = QtWidgets.QApplication(sys.argv)
 TSL_Control_Tool = QtWidgets.QMainWindow()
 app.setStyle('Fusion')
-ui = TSL_Control_Tool_GUI.Ui_TSL_Control_Tool()
+ui = TSL_Control_Tool_GUI.UiTslControlTool()
 ui.setupUi(TSL_Control_Tool)
 
 icon = QtGui.QIcon()
@@ -156,7 +152,7 @@ icon.addPixmap(QtGui.QPixmap("utils/santec_logo_small.png"), QtGui.QIcon.Normal,
 TSL_Control_Tool.setWindowIcon(icon)
 
 
-def Connect():
+def connect():
     global TSL
     rm = visa.ResourceManager()
     listing = rm.list_resources()
@@ -166,7 +162,6 @@ def Connect():
         if 'TSL' in buffer.query('*IDN?'):
             TSL = buffer
 
-    ################### TOOL INFO #################################################
     IDN = TSL.query("*IDN?")
     info = IDN.split(",")
     ui.ProdName_disp.setText(str(info[1]))
@@ -174,15 +169,13 @@ def Connect():
     ui.Firmware_disp.setText(str(info[3]))
     # return TSL
 
-    ################### TOOL INITIALIZATION #######################################
     functions.Ini()
     time.sleep(0.5)
-    GetLambda()
-    GetPwr()
-    GetAtt()
+    get_lambda()
+    get_pwr()
+    get_att()
 
 
-################### GRAPHIC ADDONS ############################################
 ui.Att_input.hide()
 ui.Att_go.hide()
 ui.frame_5.hide()
@@ -235,38 +228,36 @@ def Field_select():
 #                     elif '710' in info[1]:
 #                         ui.TriggStep_input.setToolTip(str(float(TSL.query('WAV:SWE:SPE?'))/5000)+'nm ~ '+str(float(TSL.query('WAV:SWE:STOP?'))-float(TSL.query('WAV:SWE:STAR?')))+'nm')
 
-################### BUTTONS TO FUNCTION #######################################
-ui.Connect.clicked.connect(Connect)
-ui.LD_ON.clicked.connect(LDON)  # Switch ON LD
-ui.LD_OFF.clicked.connect(LDOFF)  # Switch OFF LD
-ui.Pwr_auto.clicked.connect(PwrAuto)  # Switch to Auto Pwr
-ui.Pwr_manual.clicked.connect(PwrMan)  # Switch to Manual Pwr
-ui.shut_open.clicked.connect(ShutOp)  # Open Shutter
-ui.shut_close.clicked.connect(ShutClo)  # Close Shutter
-ui.lambda_go.clicked.connect(SetLambda)  # Set Wavelength
-ui.lambda_input.editingFinished.connect(SetLambda)  # Set Wavelength
-ui.lambda_get.clicked.connect(GetLambda)  # Read Wavelength
-ui.Pwr_input.editingFinished.connect(SetPwr)  # Set Pwr
-ui.Pwr_go.clicked.connect(SetPwr)  # Set Pwr
-ui.Pwr_get.clicked.connect(GetPwr)  # Read Pwr
-ui.Att_input.editingFinished.connect(SetAtt)  # Set Attenuation
-ui.Att_go.clicked.connect(SetAtt)  # Set Attenuation
-ui.Att_get.clicked.connect(GetAtt)  # Read Attenuation
-ui.Start.clicked.connect(Auto_Start)  # Start scanning
-ui.SoftTrig.clicked.connect(Trig_Start)  # Start scanning with soft trigger
+ui.Connect.clicked.connect(connect)
+ui.LD_ON.clicked.connect(ld_on)  # Switch ON LD
+ui.LD_OFF.clicked.connect(ld_off)  # Switch OFF LD
+ui.Pwr_auto.clicked.connect(pwr_auto)  # Switch to Auto Pwr
+ui.Pwr_manual.clicked.connect(pwr_man)  # Switch to Manual Pwr
+ui.shut_open.clicked.connect(shut_op)  # Open Shutter
+ui.shut_close.clicked.connect(shut_close)  # Close the Shutter
+ui.lambda_go.clicked.connect(set_lambda)  # Set Wavelength
+ui.lambda_input.editingFinished.connect(set_lambda)  # Set Wavelength
+ui.lambda_get.clicked.connect(get_lambda)  # Read Wavelength
+ui.Pwr_input.editingFinished.connect(set_pwr)  # Set Pwr
+ui.Pwr_go.clicked.connect(set_pwr)  # Set Pwr
+ui.Pwr_get.clicked.connect(get_pwr)  # Read Pwr
+ui.Att_input.editingFinished.connect(set_att)  # Set Attenuation
+ui.Att_go.clicked.connect(set_att)  # Set Attenuation
+ui.Att_get.clicked.connect(get_att)  # Read Attenuation
+ui.Start.clicked.connect(auto_start)  # Start scanning
+ui.SoftTrig.clicked.connect(trig_start)  # Start scanning with soft trigger
 ui.Swp_mod_input.currentIndexChanged.connect(Field_select)  # Change selectable fieds depending on sweep mode
 ui.Swp_mode_go.clicked.connect(Field_select)  # Change selectable fieds depending on sweep mode
-ui.Del_go.clicked.connect(Del_change)  # Change GPIB delimiter
-ui.CC_OFF.clicked.connect(CC_Off)  # Switch off Coherence Contorl
-ui.CC_ON.clicked.connect(CC_On)  # Switch on Coherence Control
-ui.Amp_Mod_ON.clicked.connect(AM_ON)  # Switch on Amplitude Modulation
-ui.Amp_Mod_OFF.clicked.connect(AM_OFF)  # Switch off Amplitude Modulation
-ui.TrigSrc_go.clicked.connect(TrigSrc)  # Change Trigger Input Source
-ui.TrigMode_go.clicked.connect(TrigMode)  # Change Trigger Output Mode
-ui.Stop.clicked.connect(Stop)  # Stop scan (only works on soft trigger scanning mode)
+ui.Del_go.clicked.connect(del_change)  # Change GPIB delimiter
+ui.CC_OFF.clicked.connect(cc_off)  # Switch off Coherence Contorl
+ui.CC_ON.clicked.connect(cc_on)  # Switch on Coherence Control
+ui.Amp_Mod_ON.clicked.connect(am_on)  # Switch on Amplitude Modulation
+ui.Amp_Mod_OFF.clicked.connect(am_off)  # Switch off Amplitude Modulation
+ui.TrigSrc_go.clicked.connect(trig_src)  # Change Trigger Input Source
+ui.TrigMode_go.clicked.connect(trig_mode)  # Change Trigger Output Mode
+ui.Stop.clicked.connect(stop)  # Stop scan (only works on soft trigger scanning mode)
 # ui.ScanSpeed_input.textChanged.connect(Trig_tip)                                #Calculate min and max trigger step
 # ui.lambdaStart_input.textChanged.connect(Trig_tip)                              #Calculate min and max trigger step
 # ui.lambdaEnd_input.textChanged.connect(Trig_tip)                                #Calculate min and max trigger step
-################### TOOL INFO #################################################
 TSL_Control_Tool.show()
 sys.exit(app.exec_())

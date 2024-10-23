@@ -1,16 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import pyvisa as visa
 import time
 
-global TSL
-rm = visa.ResourceManager()
-listing = rm.list_resources()
-tools = [i for i in listing if 'GPIB' in i]
-for i in tools:
-    buffer = rm.open_resource(i, read_termination='\r\n')
-    if 'TSL' in buffer.query('*IDN?'):
-        TSL = buffer
+
 Ini_Cond = {
     'POW:STAT ': '1', 'POW:SHUT ': '0', 'POW:ATT:AUT ': '1', 'POW:UNIT ': '0', 'WAV:UNIT ': '0',
     'TRIG:INP:EXT ': '0', 'TRIG:OUTP ': '3', 'WAV:SWE:MOD ': '1',
@@ -23,126 +15,134 @@ Use_Cond = {
 }
 
 
-def Ini():
-    TSL.write('*CLS')
-    TSL.write('*RST')
-    for i, j in zip(Ini_Cond.keys(), Ini_Cond.values()):
-        TSL.write(i + j)
-    if '550' in TSL.query('*IDN?') or '710' in TSL.query('*IDN?'):
-        TSL.write('GC 1')
-    else:
-        TSL.write('SYST:COMM:COD 0')
+class TSLFunctions:
+    def __init__(self, tsl_instrument):
+        self.tsl = tsl_instrument
 
-
-def SetWL(WL):
-    TSL.write('WAV ', str(WL))
-    while True:
-        check = TSL.query("*opc?")
-        if check == '0':
-            time.sleep(0.1)
+    def ini(self, idn):
+        time.sleep(0.2)
+        self.tsl.write('*CLS')
+        self.tsl.write('*RST')
+        for i, j in zip(Ini_Cond.keys(), Ini_Cond.values()):
+            self.tsl.write(i + j)
+        time.sleep(0.5)
+        if '550' in idn or '710' in idn:
+            self.tsl.write('GC 1')
         else:
-            GetWL()
-            break
+            self.tsl.write('SYST:COMM:COD 0')
 
-
-def GetWL():
-    return TSL.query('WAV?')
-
-
-def SetPwr(Pwr):
-    if Pwr > 13:
-        Pwr = 13
-    elif Pwr < -14:
-        Pwr = -14
-    TSL.write('POW ', str(Pwr))
-
-    while True:
-        check = TSL.query("*opc?")
-        if check == '0':
-            time.sleep(0.1)
-        else:
-            GetPwr()
-            break
-
-
-def GetPwr():
-    return TSL.query('POW:ACT?')
-
-
-def SetAtt(Att):
-    if Att > 30:
-        Att = 30
-    elif Att < 0:
-        Att = 0
-    TSL.write('POW:ATT ', str(Att))
-    while True:
-        check = TSL.query("*opc?")
-        if check == '0':
-            time.sleep(0.1)
-        else:
-            GetAtt()
-            GetPwr()
-            break
-
-
-def GetAtt():
-    return TSL.query('POW:ATT?')
-
-
-def Auto_Start(Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle):
-    TSL.write('TRIG:INP:STAN 0')
-    Scan(Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle)
-
-
-def Trig_Start(Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle):
-    TSL.write('TRIG:INP:STAN 1')
-    Scan(Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle)
-
-
-def Scan(Swp_mod, WLstart, WLend, Arg1, Arg2, Cycle):
-    TSL.write('WAV:SWE:MOD ' + str(Swp_mod))
-    TSL.write('WAV:SWE:STAR ' + str(WLstart))
-    TSL.write('WAV:SWE:STOP ' + str(WLend))
-    if str(Cycle) != '':
-        TSL.write('WAV:SWE:REP')
-        TSL.write('WAV:SWE:CYCL ' + str(Cycle))
-
-    if Swp_mod == 1 or Swp_mod == 3:  # if Continuous scan modes (one way or two ways) are selected,
-        # Arg1 and Arg2 = Scan speed, trigger output step
-        TSL.write('WAV:SWE:SPE ' + str(Arg1))
-        TSL.write('TRIG:OUTP:STEP ' + str(Arg2))
-        TSL.write('WAV:SWE:STAT 1')
-        check = TSL.query('WAV:SWE?')
+    def set_wl(self, WL):
+        self.tsl.write(f'WAV {WL}')
+        time.sleep(0.2)
         while True:
-            if check != '3':
-                check = TSL.query('WAV:SWE?')
+            check = self.tsl.query("*OPC?")
+            if check == '0':
                 time.sleep(0.1)
             else:
-                TSL.write('WAV:SWE:SOFT')
+                self.get_wl()
                 break
-            break
-    elif Swp_mod == 0 or Swp_mod == 2:
-        TSL.write('WAV:SWE:STEP ' + str(Arg1))
-        TSL.write('WAV:SWE:DWEL ' + str(Arg2))
-        TSL.write('WAV:SWE:STAT 1')
-        check = TSL.query('WAV:SWE?')
+
+    def get_wl(self):
+        time.sleep(0.2)
+        return self.tsl.query('WAV?')
+
+    def set_pwr(self, Pwr):
+        time.sleep(0.2)
+        if Pwr > 13:
+            Pwr = 13
+        elif Pwr < -14:
+            Pwr = -14
+        self.tsl.write(f'POW {Pwr}')
+
         while True:
-            if check != '3':
-                check = TSL.query('WAV:SWE?')
+            check = self.tsl.query("*opc?")
+            if check == '0':
                 time.sleep(0.1)
             else:
-                TSL.write('WAV:SWE:SOFT')
+                self.get_pwr()
                 break
-            break
 
+    def get_pwr(self):
+        time.sleep(0.2)
+        return self.tsl.query('POW:ACT?')
 
-def Del_change(delimiter):
-    TSL.write('SYST:COMM:GPIB:DEL ' + str(delimiter))
+    def set_att(self, Att):
+        time.sleep(0.2)
+        if Att > 30:
+            Att = 30
+        elif Att < 0:
+            Att = 0
+        self.tsl.write(f'POW:ATT {Att}')
+        while True:
+            check = self.tsl.query("*opc?")
+            if check == '0':
+                time.sleep(0.1)
+            else:
+                self.get_att()
+                self.get_pwr()
+                break
 
+    def get_att(self):
+        time.sleep(0.2)
+        return self.tsl.query('POW:ATT?')
 
-def TrigSrc(trigg):
-    TSL.write('TRIG:INP:EXT ' + str(trigg))
+    def auto_start(self, Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle):
+        time.sleep(0.2)
+        self.tsl.write('TRIG:INP:STAN 0')
+        self.scan(Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle)
 
+    def trig_start(self, Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle):
+        time.sleep(0.2)
+        self.tsl.write('TRIG:INP:STAN 1')
+        self.scan(Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle)
 
-def TrigMode(Mode):
-    TSL.write('TRIG:OUTP ' + str(Mode))
+    def scan(self, Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle):
+        time.sleep(0.2)
+        self.tsl.write(f'WAV:SWE:MOD {Swp_mod}')
+        self.tsl.write(f'WAV:SWE:STAR {WL_start}')
+        self.tsl.write(f'WAV:SWE:STOP {WL_end}')
+        if str(Cycle) != '':
+            self.tsl.write('WAV:SWE:REP')
+            self.tsl.write(f'WAV:SWE:CYCL {Cycle}')
+
+        if Swp_mod == 1 or Swp_mod == 3:  # if Continuous scan modes (one way or two ways) are selected,
+            # Arg1 and Arg2 = Scan speed, trigger output step
+            self.tsl.write(f'WAV:SWE:SPE {Arg1}')
+            self.tsl.write(f'TRIG:OUTP:STEP {Arg2}')
+            self.tsl.write('WAV:SWE:STAT 1')
+            check = self.tsl.query('WAV:SWE?')
+            time.sleep(0.2)
+            while True:
+                if check != '3':
+                    check = self.tsl.query('WAV:SWE?')
+                    time.sleep(0.1)
+                else:
+                    self.tsl.write('WAV:SWE:SOFT')
+                    break
+                break
+        elif Swp_mod == 0 or Swp_mod == 2:
+            time.sleep(0.2)
+            self.tsl.write(f'WAV:SWE:STEP {Arg1}')
+            self.tsl.write(f'WAV:SWE:DWEL {Arg2}')
+            self.tsl.write('WAV:SWE:STAT 1')
+            check = self.tsl.query('WAV:SWE?')
+            while True:
+                if check != '3':
+                    check = self.tsl.query('WAV:SWE?')
+                    time.sleep(0.1)
+                else:
+                    self.tsl.write('WAV:SWE:SOFT')
+                    break
+                break
+
+    def del_change(self, delimiter):
+        time.sleep(0.2)
+        self.tsl.write(f'SYST:COMM:GPIB:DEL {delimiter}')
+
+    def trig_src(self, trigg):
+        time.sleep(0.2)
+        self.tsl.write(f'TRIG:INP:EXT {trigg}')
+
+    def trig_mode(self, Mode):
+        time.sleep(0.2)
+        self.tsl.write(f'TRIG:OUTP {Mode}')

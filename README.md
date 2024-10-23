@@ -1,7 +1,7 @@
 <p align="right"> <a href="https://www.santec.com/jp/" target="_blank" rel="noreferrer"> <img src="https://www.santec.com/dcms_media/image/common_logo01.png" alt="santec" 
   width="250" height="45"/> </a> </p>
 
-<h1>TSL GPIB Control Script</h1>
+<h1>TSL GPIB Control</h1>
 
 A GUI Interface to command and manage Santec TSL Device(s) connected via GPIB. <br>
 For all TSL Models. Read below for more information.
@@ -10,6 +10,10 @@ For all TSL Models. Read below for more information.
 <h2>Introduction</h2>
 
 The Santec TSL Devices connected via GPIB can be controlled using Python GUI script.
+
+<h2>GUI</h2>
+
+![img.png](utils/gui.png)
 
 <h2>Requirements</h2>
 

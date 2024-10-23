@@ -15,7 +15,7 @@ ui = tsl_control_tool_gui.UiTslControlTool()
 ui.setupUi(TSL_Control_Tool)
 
 icon = QtGui.QIcon()
-icon.addPixmap(QtGui.QPixmap("utils/santec_logo_small.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+icon.addPixmap(QtGui.QPixmap("utils/santec.ico"), QtGui.QIcon.Normal, QtGui.QIcon.On)
 TSL_Control_Tool.setWindowIcon(icon)
 
 

@@ -4,14 +4,14 @@ import sys
 import time
 import pyvisa as visa
 from PyQt5 import QtCore, QtWidgets, QtGui
-from drivers import functions, TSL_Control_Tool_GUI
+from drivers import functions, tsl_control_tool_gui
 
 app = QtCore.QCoreApplication.instance()
 if app is None:
     app = QtWidgets.QApplication(sys.argv)
 TSL_Control_Tool = QtWidgets.QMainWindow()
 app.setStyle('Fusion')
-ui = TSL_Control_Tool_GUI.UiTslControlTool()
+ui = tsl_control_tool_gui.UiTslControlTool()
 ui.setupUi(TSL_Control_Tool)
 
 icon = QtGui.QIcon()

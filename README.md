@@ -11,6 +11,9 @@ For all TSL Models. Read below for more information.
 
 The Santec TSL Devices connected via GPIB can be controlled using Python GUI script.
 
+<h2>GUI</h2>
+![img.png](utils/gui.png)
+
 <h2>Requirements</h2>
 
   - [Python](https://www.python.org/) - any version ( Latest Version advisable ), install the latest version [Python Latest](https://www.python.org/downloads/), <br><br>

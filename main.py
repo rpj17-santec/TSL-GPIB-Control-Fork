@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import time
+import json
 import logging
 import datetime
 import platform
@@ -21,6 +23,9 @@ dt = dt.strftime("%Y%m%d")
 
 # Logger details
 OUTPUT_LOGGER_NAME = f"output_{dt}.log"
+
+# IP Config File
+IP_CONFIG_FILE = "ip_config_file.json"
 
 # Configure logging
 logging.basicConfig(
@@ -60,6 +65,32 @@ def log_run_info():
     ]
     for line in info:
         logging.info(line)
+
+
+def save_config():
+    config = {
+        'ip_address': ui.IP_Address_input.text(),
+        'port_number': ui.Port_Number_input.text(),
+        'subnet': ui.Subnet_Mask_input.text(),
+        'gateway': ui.Default_Gateway_input.text(),
+    }
+
+    with open(IP_CONFIG_FILE, 'w') as f:
+        json.dump(config, f)
+    logging.info("User configuration saved.")
+
+
+def load_config():
+    if os.path.exists(IP_CONFIG_FILE):
+        with open(IP_CONFIG_FILE, 'r') as f:
+            config = json.load(f)
+            ui.IP_Address_input.setText(config.get('ip_address', ''))
+            ui.Port_Number_input.setText(config.get('port_number', ''))
+            ui.Subnet_Mask_input.setText(config.get('subnet', ''))
+            ui.Default_Gateway_input.setText(config.get('gateway', ''))
+            logging.info("User configuration loaded.")
+    else:
+        logging.warning("No configuration file found, using defaults.")
 
 
 class Operation:
@@ -137,6 +168,7 @@ class Operation:
                 self.get_pwr()
                 self.get_att()
                 logging.info("Completed getting lambda, power, and attenuation.")
+                save_config()
 
             except Exception as e:
                 logging.error(f"Error during TSL operations after connection: {e}")
@@ -419,6 +451,7 @@ log_run_info()
 
 operations = Operation()
 
+load_config()
 ui.Connect.clicked.connect(operations.connect_tsl)
 ui.LD_ON.clicked.connect(operations.ld_on)  # Switch ON LD
 ui.LD_OFF.clicked.connect(operations.ld_off)  # Switch OFF LD

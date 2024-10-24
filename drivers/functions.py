@@ -136,14 +136,16 @@ class TSLFunctions:
             if Swp_mod in [1, 3]:
                 self.tsl.write(f'WAV:SWE:SPE {Arg1}')
                 self.tsl.write(f'TRIG:OUTP:STEP {Arg2}')
-                self.tsl.write('WAV:SWE:STAT 1')
-                self.wait_for_scan_completion()
+                self.tsl.write('WAV:SWE 1')
+                self.tsl.write(':TRIG:INP:SOFT')
+                # self.wait_for_scan_completion()
             elif Swp_mod in [0, 2]:
                 time.sleep(0.5)
                 self.tsl.write(f'WAV:SWE:STEP {Arg1}')
                 self.tsl.write(f'WAV:SWE:DWEL {Arg2}')
-                self.tsl.write('WAV:SWE:STAT 1')
-                self.wait_for_scan_completion()
+                self.tsl.write('WAV:SWE 1')
+                self.tsl.write(':TRIG:INP:SOFT')
+                # self.wait_for_scan_completion()
 
             self.logger.info("Scan initiated successfully.")
         except Exception as e:
@@ -154,9 +156,9 @@ class TSLFunctions:
         while True:
             if check != '3':
                 check = self.tsl.query('WAV:SWE?')
-                time.sleep(0.1)
+                time.sleep(0.2)
             else:
-                self.tsl.write('WAV:SWE:SOFT')
+                self.tsl.write(':TRIG:INP:SOFT')
                 break
 
     def del_change(self, delimiter):

@@ -1,11 +1,38 @@
-
 # -*- coding: utf-8 -*-
 
 import sys
 import time
+import logging
+import datetime
+import platform
 import pyvisa as visa
 from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtWidgets import QMessageBox
 from drivers import functions, tsl_control_tool_gui
+
+# About
+__version__ = "1.2.0"
+__date__ = "2024-10-24"
+__organization__ = "Santec Holdings Corporation"
+
+# Date and time for logging
+dt = datetime.datetime.now()
+dt = dt.strftime("%Y%m%d")
+
+# Logger details
+OUTPUT_LOGGER_NAME = f"output_{dt}.log"
+
+# Configure logging
+logging.basicConfig(
+    filename=OUTPUT_LOGGER_NAME,
+    level=logging.DEBUG,
+    filemode='w',
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# Create a separate logger for PyVISA
+pyvisa_logger = logging.getLogger('pyvisa')
+pyvisa_logger.setLevel(logging.DEBUG)
 
 app = QtCore.QCoreApplication.instance()
 if app is None:
@@ -20,78 +47,235 @@ icon.addPixmap(QtGui.QPixmap("utils/santec.ico"), QtGui.QIcon.Normal, QtGui.QIco
 TSL_Control_Tool.setWindowIcon(icon)
 
 
+def log_run_info():
+    logging.info(f"Project Version: {__version__}, Date: {__date__}")
+    info = [
+        f"Python Version: {sys.version}",
+        f"Python Implementation: {platform.python_implementation()}"
+        f"Architecture: {platform.architecture()[0]}",
+        f"Operating System: {platform.system()} {platform.release()}",
+        f"Platform ID: {platform.platform()}",
+        f"Machine: {platform.machine()}",
+        f"Processor: {platform.processor()}"
+    ]
+    for line in info:
+        logging.info(line)
+
+
 class Operation:
     def __init__(self):
         self.rm = None
         self.tsl = None
         self.tsl_functions = None
 
+    @staticmethod
+    def show_error_message(message):
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Critical)
+        msg_box.setText(message)
+        msg_box.setWindowTitle("Error")
+        msg_box.setStandardButtons(QMessageBox.Ok)
+        msg_box.exec_()
+
+    def connect_tsl(self):
+        logging.info("Starting TSL connection process.")
+
+        try:
+            self.rm = visa.ResourceManager()
+            logging.info("ResourceManager created.")
+
+            # List available resources
+            list_of_resources = self.rm.list_resources()
+            logging.info(f"Available resources: {list_of_resources}")
+
+            # Filter for GPIB tools
+            tools = [i for i in list_of_resources if 'GPIB' in i]
+            logging.info(f"GPIB tools found: {tools}")
+
+            for resource in tools:
+                try:
+                    buffer = self.rm.open_resource(resource, read_termination='\n')
+                    idn = buffer.query('*IDN?')
+                    logging.info(f"Querying resource {resource}: IDN = {idn}")
+
+                    if 'SANTEC' in idn and 'TSL' in idn:
+                        self.tsl = buffer
+                        logging.info(f"Connected to SANTEC TSL at resource {resource}.")
+                        break  # Exit loop on successful connection
+
+                except visa.VisaIOError as e:
+                    logging.warning(f"Could not open resource {resource}: {e}")
+
+            # Check for successful connection
+            if self.tsl is not None:
+                logging.info("Successfully connected to TSL.")
+            else:
+                logging.error("TSL connection failed: No valid TSL resources found.")
+                self.show_error_message("TSL connection failed: No valid TSL connections found.")
+                return
+
+        except visa.VisaIOError as e:
+            logging.error(f"VisaIOError during TSL connection: {e}")
+            self.show_error_message("Failed to connect to the TSL device. Please check the settings.")
+        except RuntimeError as e:
+            logging.error(f"Runtime error during TSL connection: {e}")
+            self.show_error_message("An unexpected runtime error occurred.")
+        except Exception as e:
+            logging.error(f"Unexpected error during TSL operation: {e}")
+            self.show_error_message("An unexpected error occurred.")
+
+        # Proceed with further operations if the connection is successful
+        if self.tsl:
+            try:
+                logging.info("Getting TSL IDN")
+                IDN = self.tsl.query("*IDN?")
+                logging.info(f"TSL IDN: {IDN}")
+                info = IDN.split(",")
+                ui.ProdName_disp.setText(str(info[1]))
+                ui.SN_disp.setText(str(info[2]))
+                ui.Firmware_disp.setText(str(info[3]))
+                logging.info(f"Device Info - ProdName: {info[1]}, SN: {info[2]}, Firmware: {info[3]}")
+
+                self.tsl_functions = functions.TSLFunctions(self.tsl, logging)
+                self.tsl_functions.ini(IDN)
+                logging.info("TSL functions initialized.")
+
+                time.sleep(0.2)
+                self.get_lambda()
+                self.get_pwr()
+                self.get_att()
+                logging.info("Completed getting lambda, power, and attenuation.")
+
+            except Exception as e:
+                logging.error(f"Error during TSL operations after connection: {e}")
+                self.show_error_message("An error occurred during TSL operations.")
+
     def ld_on(self):
-        time.sleep(0.2)
-        self.tsl.write("POW:STAT 1")
+        try:
+            time.sleep(0.2)
+            self.tsl.write("POW:STAT 1")
+            logging.info("Laser device turned on.")
+        except Exception as e:
+            logging.error(f"Error turning on laser device: {e}")
+            self.show_error_message("Failed to turn on the laser device.")
 
     def ld_off(self):
-        time.sleep(0.2)
-        self.tsl.write("POW:STAT 0")
+        try:
+            time.sleep(0.2)
+            self.tsl.write("POW:STAT 0")
+            logging.info("Laser device turned off.")
+        except Exception as e:
+            logging.error(f"Error turning off laser device: {e}")
+            self.show_error_message("Failed to turn off the laser device.")
 
     def pwr_auto(self):
-        time.sleep(0.2)
-        self.tsl.write('POW:ATT:AUT 1')
+        try:
+            time.sleep(0.2)
+            self.tsl.write('POW:ATT:AUT 1')
+            logging.info("Power set to automatic mode.")
+        except Exception as e:
+            logging.error(f"Error setting power to automatic mode: {e}")
+            self.show_error_message("Failed to set power to automatic mode.")
 
     def pwr_man(self):
-        time.sleep(0.2)
-        self.tsl.write('POW:ATT:AUT 0')
+        try:
+            time.sleep(0.2)
+            self.tsl.write('POW:ATT:AUT 0')
+            logging.info("Power set to manual mode.")
+        except Exception as e:
+            logging.error(f"Error setting power to manual mode: {e}")
+            self.show_error_message("Failed to set power to manual mode.")
 
     def shut_op(self):
-        time.sleep(0.2)
-        self.tsl.write('POW:SHUT 0')
-        time.sleep(0.1)
-        self.get_pwr()
-        self.get_att()
+        try:
+            time.sleep(0.2)
+            self.tsl.write('POW:SHUT 0')
+            time.sleep(0.1)
+            self.get_pwr()
+            self.get_att()
+            logging.info("Output shut off.")
+        except Exception as e:
+            logging.error(f"Error shutting output off: {e}")
+            self.show_error_message("Failed to shut off output.")
 
     def shut_close(self):
-        time.sleep(0.2)
-        self.tsl.write('POW:SHUT 1')
-        time.sleep(0.1)
-        self.get_pwr()
-        self.get_att()
+        try:
+            time.sleep(0.2)
+            self.tsl.write('POW:SHUT 1')
+            time.sleep(0.1)
+            self.get_pwr()
+            self.get_att()
+            logging.info("Output shut closed.")
+        except Exception as e:
+            logging.error(f"Error closing output shut: {e}")
+            self.show_error_message("Failed to close output shut.")
 
     def set_lambda(self):
-        time.sleep(0.2)
-        WriteLambda = round(float(ui.lambda_input.text()), 4)
-        self.tsl_functions.set_wl(WriteLambda)
-        time.sleep(0.1)
-        self.get_lambda()
-        self.get_pwr()
-        self.get_att()
+        try:
+            time.sleep(0.2)
+            WriteLambda = round(float(ui.lambda_input.text()), 4)
+            self.tsl_functions.set_wl(WriteLambda)
+            time.sleep(0.1)
+            self.get_lambda()
+            self.get_pwr()
+            self.get_att()
+            logging.info(f"Wavelength set to {WriteLambda}.")
+        except Exception as e:
+            logging.error(f"Error setting wavelength: {e}")
+            self.show_error_message("Failed to set wavelength.")
 
     def get_lambda(self):
-        time.sleep(0.2)
-        ui.lambda_disp.setText(self.tsl_functions.get_wl())
+        try:
+            time.sleep(0.2)
+            ui.lambda_disp.setText(self.tsl_functions.get_wl())
+            logging.info("Wavelength retrieved successfully.")
+        except Exception as e:
+            logging.error(f"Error getting wavelength: {e}")
+            self.show_error_message("Failed to retrieve wavelength.")
 
     def set_pwr(self):
-        time.sleep(0.2)
-        WritePwr = round(float(ui.Pwr_input.text()), 2)
-        self.tsl_functions.set_pwr(WritePwr)
-        time.sleep(0.1)
-        self.get_pwr()
-        self.get_att()
+        try:
+            time.sleep(0.2)
+            WritePwr = round(float(ui.Pwr_input.text()), 2)
+            self.tsl_functions.set_pwr(WritePwr)
+            time.sleep(0.1)
+            self.get_pwr()
+            self.get_att()
+            logging.info(f"Power set to {WritePwr} dBm.")
+        except Exception as e:
+            logging.error(f"Error setting power: {e}")
+            self.show_error_message("Failed to set power.")
 
     def get_pwr(self):
-        time.sleep(0.2)
-        ui.Pwr_disp.setText(self.tsl_functions.get_pwr())
+        try:
+            time.sleep(0.2)
+            ui.Pwr_disp.setText(self.tsl_functions.get_pwr())
+            logging.info("Power retrieved successfully.")
+        except Exception as e:
+            logging.error(f"Error getting power: {e}")
+            self.show_error_message("Failed to retrieve power.")
 
     def set_att(self):
-        time.sleep(0.2)
-        WriteAtt = round(float(ui.Att_input.text()), 2)
-        self.tsl_functions.set_att(WriteAtt)
-        time.sleep(0.1)
-        self.get_pwr()
-        self.get_att()
+        try:
+            time.sleep(0.2)
+            WriteAtt = round(float(ui.Att_input.text()), 2)
+            self.tsl_functions.set_att(WriteAtt)
+            time.sleep(0.1)
+            self.get_pwr()
+            self.get_att()
+            logging.info(f"Attenuation set to {WriteAtt} dB.")
+        except Exception as e:
+            logging.error(f"Error setting attenuation: {e}")
+            self.show_error_message("Failed to set attenuation.")
 
     def get_att(self):
-        time.sleep(0.2)
-        ui.Att_disp.setText(self.tsl_functions.get_att())
+        try:
+            time.sleep(0.2)
+            ui.Att_disp.setText(self.tsl_functions.get_att())
+            logging.info("Attenuation retrieved successfully.")
+        except Exception as e:
+            logging.error(f"Error getting attenuation: {e}")
+            self.show_error_message("Failed to retrieve attenuation.")
 
     @staticmethod
     def get_data():
@@ -114,76 +298,96 @@ class Operation:
         return Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle
 
     def auto_start(self):
-        time.sleep(0.2)
-        Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle = self.get_data()
-        self.tsl_functions.auto_start(Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle)
+        try:
+            time.sleep(0.2)
+            Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle = self.get_data()
+            self.tsl_functions.auto_start(Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle)
+            logging.info("Auto start initiated.")
+        except Exception as e:
+            logging.error(f"Error in auto start: {e}")
+            self.show_error_message("Failed to initiate auto start.")
 
     def trig_start(self):
-        time.sleep(0.2)
-        Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle = self.get_data()
-        self.tsl_functions.trig_start(Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle)
+        try:
+            time.sleep(0.2)
+            Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle = self.get_data()
+            self.tsl_functions.trig_start(Swp_mod, WL_start, WL_end, Arg1, Arg2, Cycle)
+            logging.info("Trigger start initiated.")
+        except Exception as e:
+            logging.error(f"Error in trigger start: {e}")
+            self.show_error_message("Failed to initiate trigger start.")
 
     def del_change(self):
-        time.sleep(0.2)
-        self.tsl_functions.del_change(ui.GPIB_DEL_input.currentIndex())
+        try:
+            time.sleep(0.2)
+            self.tsl_functions.del_change(ui.GPIB_DEL_input.currentIndex())
+            logging.info("GPIB delimiter changed.")
+        except Exception as e:
+            logging.error(f"Error changing GPIB delimiter: {e}")
+            self.show_error_message("Failed to change GPIB delimiter.")
 
     def cc_off(self):
-        time.sleep(0.2)
-        self.tsl.write('COHC 0')
+        try:
+            time.sleep(0.2)
+            self.tsl.write('COHC 0')
+            logging.info("Coherence control turned off.")
+        except Exception as e:
+            logging.error(f"Error turning off coherence control: {e}")
+            self.show_error_message("Failed to turn off coherence control.")
 
     def cc_on(self):
-        time.sleep(0.2)
-        self.tsl.write('COHC 1')
+        try:
+            time.sleep(0.2)
+            self.tsl.write('COHC 1')
+            logging.info("Coherence control turned on.")
+        except Exception as e:
+            logging.error(f"Error turning on coherence control: {e}")
+            self.show_error_message("Failed to turn on coherence control.")
 
     def am_on(self):
-        time.sleep(0.2)
-        self.tsl.write('AM:STATE 1')
+        try:
+            time.sleep(0.2)
+            self.tsl.write('AM:STATE 1')
+            logging.info("Amplitude modulation turned on.")
+        except Exception as e:
+            logging.error(f"Error turning on amplitude modulation: {e}")
+            self.show_error_message("Failed to turn on amplitude modulation.")
 
     def am_off(self):
-        time.sleep(0.2)
-        self.tsl.write('AM:STATE 0')
+        try:
+            time.sleep(0.2)
+            self.tsl.write('AM:STATE 0')
+            logging.info("Amplitude modulation turned off.")
+        except Exception as e:
+            logging.error(f"Error turning off amplitude modulation: {e}")
+            self.show_error_message("Failed to turn off amplitude modulation.")
 
     def trig_src(self):
-        time.sleep(0.2)
-        self.tsl_functions.trig_src(ui.TrigSrc_input.currentIndex())
+        try:
+            time.sleep(0.2)
+            self.tsl_functions.trig_src(ui.TrigSrc_input.currentIndex())
+            logging.info("Trigger source set.")
+        except Exception as e:
+            logging.error(f"Error setting trigger source: {e}")
+            self.show_error_message("Failed to set trigger source.")
 
     def trig_mode(self):
-        time.sleep(0.2)
-        self.tsl_functions.trig_mode(ui.TrigMode_input.currentIndex())
+        try:
+            time.sleep(0.2)
+            self.tsl_functions.trig_mode(ui.TrigMode_input.currentIndex())
+            logging.info("Trigger mode set.")
+        except Exception as e:
+            logging.error(f"Error setting trigger mode: {e}")
+            self.show_error_message("Failed to set trigger mode.")
 
     def stop(self):
-        time.sleep(0.2)
-        self.tsl.write('WAV:SWE 0')
-
-    def connect_tsl(self):
-        time.sleep(0.2)
-        self.rm = visa.ResourceManager()
-
-        list_of_resources = self.rm.list_resources()
-        tools = [i for i in list_of_resources if 'GPIB' in i]
-        for i in tools:
-            buffer = self.rm.open_resource(i, read_termination='\n')
-            idn = buffer.query('*IDN?')
-            if 'SANTEC' in idn and 'TSL' in idn:
-                self.tsl = buffer
-
-        if self.tsl is None:
-            return
-
-        IDN = self.tsl.query("*IDN?")
-        info = IDN.split(",")
-        ui.ProdName_disp.setText(str(info[1]))
-        ui.SN_disp.setText(str(info[2]))
-        ui.Firmware_disp.setText(str(info[3]))
-        # return self.tsl
-
-        self.tsl_functions = functions.TSLFunctions(self.tsl)
-        self.tsl_functions.ini(IDN)
-
-        time.sleep(0.5)
-        self.get_lambda()
-        self.get_pwr()
-        self.get_att()
+        try:
+            time.sleep(0.2)
+            self.tsl.write('WAV:SWE 0')
+            logging.info("Wave sweep stopped.")
+        except Exception as e:
+            logging.error(f"Error stopping wave sweep: {e}")
+            self.show_error_message("Failed to stop wave sweep.")
 
 
 ui.Att_input.hide()
@@ -200,6 +404,8 @@ def field_select():
         ui.frame_5.show()
         ui.frame_4.hide()
 
+
+log_run_info()
 
 operations = Operation()
 

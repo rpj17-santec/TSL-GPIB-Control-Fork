@@ -50,7 +50,7 @@ jobs:
       - name: Move Installer
         run: |
           mkdir -p exe
-          mv dist/main.exe exe/
+          mv dist/main exe/
 
       - name: Add to TSL-GPIB-Control and Zip
         run: |
@@ -60,7 +60,17 @@ jobs:
           zip -r  TSL-GPIB-Control.zip  TSL-GPIB-Control/
       
       - name: Upload Zip File
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name:  TSL-GPIB-Control.zip
           path:  TSL-GPIB-Control.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.branch }}-${{ steps.update_version.outputs.version }}  # Tag name can include the branch and version
+          draft: false
+          prerelease: false
+          files: TSL-GPIB-Control.zip  # Path to the zip file
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

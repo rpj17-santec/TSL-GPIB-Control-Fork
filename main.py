@@ -13,8 +13,8 @@ from PyQt5.QtWidgets import QMessageBox
 from drivers import functions, tsl_control_tool_gui
 
 # About
-__version__ = "1.2.0-lan"
-__date__ = "2024-10-24"
+__version__ = "1.2.1-lan"
+__date__ = "2024-10-28"
 __organization__ = "Santec Holdings Corporation"
 
 # Date and time for logging

@@ -60,7 +60,7 @@ class TSLFunctions:
     def set_pwr(self, Pwr):
         try:
             time.sleep(0.5)
-            Pwr = max(min(Pwr, 13), -14)  # Clamp power value
+            # Pwr = max(min(Pwr, 13), -14)  # Clamp power value
             self.tsl.write(f'POW {Pwr}')
             while True:
                 check = self.tsl.query("*opc?")

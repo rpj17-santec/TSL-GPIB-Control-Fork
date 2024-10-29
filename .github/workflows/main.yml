@@ -77,7 +77,7 @@ jobs:
           }
       
           # Run PyInstaller with the generated spec file
-          python -m PyInstaller --clean --windowed --icon=utils/santec.ico $scriptPath
+          python -m PyInstaller --clean --windowed --icon=src/utils/santec.ico $scriptPath
 
       - name: Upload Executable Artifact
         uses: actions/upload-artifact@v4

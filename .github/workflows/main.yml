@@ -1,4 +1,4 @@
-name: TSL Control Publish
+name: TSL LAN Control Pre Release
 
 on:
   workflow_dispatch:

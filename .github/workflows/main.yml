@@ -9,9 +9,8 @@ on:
         default: 'main'
       release:
         description: 'Release Type'
-        required: false
+        required: true
         type: choice
-        default: None
         options:
           - Latest Release
           - Pre-Release
@@ -110,7 +109,7 @@ jobs:
       - name: Determine Release Type
         id: determine_release
         run: |
-          if ($env:GITHUB_EVENT_INPUTS_RELEASE -eq "Pre-Release") {
+          if ($env:github.event.inputs.branch -eq "Pre-Release") {
             echo "IS_PRERELEASE=true" >> $env:GITHUB_ENV
           } else {
             echo "IS_PRERELEASE=false" >> $env:GITHUB_ENV

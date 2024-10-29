@@ -58,33 +58,30 @@ jobs:
           $zipFileName = "src.zip"
           Compress-Archive -Path src\* -DestinationPath $zipFileName -Force
 
-      - name: Generate Spec File
+      - name: Generate and Run Installer
         run: |
           $pyinstallerPath = "pyinstaller"
           $scriptPath = "src/main.py"
           $exeName = "tsl-control"
+          $specFile = "tsl-control.spec"
           
           # Check if PyInstaller is installed
           if (-not (Get-Command $pyinstallerPath -ErrorAction SilentlyContinue)) {
               Write-Error "PyInstaller is not installed. Please install it using pip."
               exit 1
           }
-          
+      
           # Run PyInstaller to generate the spec file
           & $pyinstallerPath --onefile --name=$exeName $scriptPath
-
-      - name: Run Installer
-        run: |
-          $specFile = "tsl-control.spec"
-          
+      
           # Check if the spec file exists
           if (-Not (Test-Path $specFile)) {
               Write-Error "Spec file '$specFile' does not exist. Please check the previous step."
               exit 1
           }
-          
+      
           # Run PyInstaller with the generated spec file
-          python -m PyInstaller --clean --windowed --icon=utils/santec.ico $specFile
+          python -m PyInstaller --clean --windowed --icon=utils/santec.ico $scriptPath
 
       - name: Upload Executable Artifact
         uses: actions/upload-artifact@v4

@@ -8,6 +8,11 @@ on:
         required: true
         default: 'main'
 
+env:
+  organization:
+  date:
+  tag:
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,47 +28,68 @@ jobs:
         with:
           python-version: '3.12'  # Specify your Python version
 
-      - name: Update version in main.py
+      - name: Extract version and organization
+        id: extract_info
         run: |
-          VERSION="1.3.0"  # Adjust this as needed
-          if [[ "${{ github.event.inputs.branch }}" == *"feature"* ]]; then
-            VERSION="${VERSION}-${{ github.event.inputs.branch }}"
+          version=$(python -c "import re; print(re.search(r'__version__ = \"(.*?)\"', open('main.py').read()).group(1))")
+          organization=$(python -c "import re; print(re.search(r'__organization__ = \"(.*?)\"', open('main.py').read()).group(1))")
+          echo "version=$version" >> $GITHUB_ENV
+          echo "organization=$organization" >> $GITHUB_ENV
+
+      - name: Set Tag Name
+        id: set_tag_name
+        run: |
+          if [[ $GITHUB_REF == refs/heads/feature/* ]]; then
+            tag="v${{ env.version }}-feature"
+          else
+            tag="v${{ env.version }}"
           fi
-          sed -i "s/^__version__ = .*/__version__ = '${VERSION}'/" main.py
+          echo "tag_name=$tag" >> $GITHUB_ENV
 
-      - name: Create src directory
-        run: |
-          mkdir -p src
-          mv main.py src/
-          mv drivers src/
-          mv utils src/
-          mv README.md src/
+      - name: Debug Tag Name
+        run: "Tag Name: ${{ env.tag_name }}"
 
-      - name: Install pyinstaller
-        run: |
-          pip install pyinstaller
-
-      - name: Create Installer
-        run: |
-          pyinstaller --clean --onefile --windowed --icon=utils/santec.ico src/main.py
-
-      - name: Move Installer
-        run: |
-          mkdir -p exe
-          mv dist/main exe/
-
-      - name: Add to TSL-GPIB-Control and Zip
-        run: |
-          mkdir -p  TSL-GPIB-Control
-          mv src  TSL-GPIB-Control/
-          mv exe  TSL-GPIB-Control/
-          zip -r  TSL-GPIB-Control.zip  TSL-GPIB-Control/
-      
-      - name: Upload Zip File
-        uses: actions/upload-artifact@v4
-        with:
-          name:  TSL-GPIB-Control.zip
-          path:  TSL-GPIB-Control.zip
+#      - name: Update version in main.py
+#        run: |
+#          VERSION="1.3.0"  # Adjust this as needed
+#          if [[ "${{ github.event.inputs.branch }}" == *"feature"* ]]; then
+#            VERSION="${VERSION}-${{ github.event.inputs.branch }}"
+#          fi
+#          sed -i "s/^__version__ = .*/__version__ = '${VERSION}'/" main.py
+#
+#      - name: Create src directory
+#        run: |
+#          mkdir -p src
+#          mv main.py src/
+#          mv drivers src/
+#          mv utils src/
+#          mv README.md src/
+#
+#      - name: Install pyinstaller
+#        run: |
+#          pip install pyinstaller
+#
+#      - name: Create Installer
+#        run: |
+#          pyinstaller --clean --onefile --windowed --icon=utils/santec.ico src/main.py
+#
+#      - name: Move Installer
+#        run: |
+#          mkdir -p exe
+#          mv dist/main exe/
+#
+#      - name: Add to TSL-GPIB-Control and Zip
+#        run: |
+#          mkdir -p  TSL-GPIB-Control
+#          mv src  TSL-GPIB-Control/
+#          mv exe  TSL-GPIB-Control/
+#          zip -r  TSL-GPIB-Control.zip  TSL-GPIB-Control/
+#
+#      - name: Upload Zip File
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name:  TSL-GPIB-Control.zip
+#          path:  TSL-GPIB-Control.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

@@ -99,6 +99,3 @@ jobs:
           files: TSL-GPIB-Control.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Debug Tag Name
-        run: "Tag Name: ${{ env.tag_name }}"

@@ -20,7 +20,7 @@ jobs:
       - name: Determine Pre-Release
         id: determine_prerelease
         run: |
-          if ($env:GITHUB_EVENT_INPUTS_PRERELEASE -eq "false") {
+          if ($env:GITHUB_EVENT_INPUTS_PRERELEASE -eq false) {
             echo "IS_PRERELEASE=true" >> $env:GITHUB_ENV
           } else {
             echo "IS_PRERELEASE=false" >> $env:GITHUB_ENV

@@ -68,9 +68,12 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.branch }}-${{ steps.update_version.outputs.version }}  # Tag name can include the branch and version
+          tag_name: ${{ env.tag_name }}
           draft: false
           prerelease: false
-          files: TSL-GPIB-Control.zip  # Path to the zip file
+          files: TSL-GPIB-Control.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug Tag Name
+        run: "Tag Name: ${{ env.tag_name }}"

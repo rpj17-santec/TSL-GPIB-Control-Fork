@@ -11,6 +11,7 @@ on:
         description: 'Release Type'
         required: false
         type: choice
+        default: None
         options:
           - Latest Release
           - Pre-Release
@@ -28,7 +29,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.12'  # Specify your Python version
+          python-version: '3.12'
+
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt
 
       - name: Extract version and organization
         id: extract_info
@@ -56,18 +61,18 @@ jobs:
           mv utils src/
           mv README.md src/
 
-      - name: Install pyinstaller
+      - name: Generate Spec File
         run: |
-          pip install pyinstaller
+          pyinstaller --onefile --name=tsl-control src/main.py
 
       - name: Run Installer
         run: |
-          python -m PyInstaller main.spec
+          python -m PyInstaller tsl-control.spec
 
       - name: Move Installer
         run: |
           mkdir -p exe
-          mv dist/main.exe exe/
+          mv dist/tsl-control.exe exe/
 
       - name: Add to TSL-GPIB-Control and Zip
         run: |
@@ -92,12 +97,29 @@ jobs:
           fi
           echo "tag_name=$tag" >> $GITHUB_ENV
 
+      - name: Determine Release Type
+        id: determine_release
+        run: |
+          if [[ "${{ github.event.inputs.release }}" == "Pre-Release" ]]; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+          else
+            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.tag_name }}
           draft: false
-          prerelease: false
+          prerelease: ${{ env.IS_PRERELEASE }}
           files: TSL-GPIB-Control.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Release Type
+        run: |
+          if [[ "${{ github.event.inputs.release }}" == "Pre-Release" ]]; then
+            echo "A pre-release has been created."
+          else
+            echo "A latest release has been created."
+          fi

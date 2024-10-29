@@ -12,8 +12,8 @@ on:
         required: true
         type: choice
         options:
-          - Latest Release
-          - Pre-Release
+          - 'Latest Release'
+          - 'Pre-Release'
 
 defaults:
   run:

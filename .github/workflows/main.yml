@@ -3,10 +3,6 @@ name: TSL Control Publish
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch'
-        required: true
-        default: 'main'
       prerelease:
         description: 'Pre-Release'
         required: false

@@ -121,7 +121,7 @@ jobs:
         with:
           tag_name: ${{ env.tag_name }}
           draft: false
-          prerelease: ${{ env.IS_PRERELEASE }}
+          prerelease: true
           files: |
             dist/tsl-control.exe
             src.zip

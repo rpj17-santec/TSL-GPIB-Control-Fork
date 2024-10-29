@@ -1,0 +1,32 @@
+name: Try Pre Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: 'Pre-Release'
+        required: false
+        type: boolean
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Determine Pre-Release
+        id: determine_prerelease
+        run: |
+          if ($env:GITHUB_EVENT_INPUTS_PRERELEASE -eq "false") {
+            echo "IS_PRERELEASE=true" >> $env:GITHUB_ENV
+          } else {
+            echo "IS_PRERELEASE=false" >> $env:GITHUB_ENV
+          }
+
+      - name: Debug Pre-Release
+        run: |
+          echo "Pre-release Input: ${{ github.event.inputs.prerelease }}"
+          echo "Pre-release Value: ${{ env.IS_PRERELEASE }}"

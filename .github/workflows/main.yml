@@ -4,14 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'main'
+        description: 'Branch'
         required: true
         default: 'main'
-
-env:
-  organization:
-  date:
-  tag:
+      release:
+        description: 'Release Type'
+        required: false
+        type: choice
+        options:
+          - Latest Release
+          - Pre-Release
 
 jobs:
   build:
@@ -58,14 +60,14 @@ jobs:
         run: |
           pip install pyinstaller
 
-      - name: Create Installer
+      - name: Run Installer
         run: |
-          pyinstaller --clean --onefile --windowed --icon=utils/santec.ico src/main.py
+          python -m PyInstaller main.spec
 
       - name: Move Installer
         run: |
           mkdir -p exe
-          mv dist/main exe/
+          mv dist/main.exe exe/
 
       - name: Add to TSL-GPIB-Control and Zip
         run: |

@@ -1,0 +1,3 @@
+PyQt5~=5.15.10
+PyVISA~=1.14.1
+PyInstaller~=6.11.0

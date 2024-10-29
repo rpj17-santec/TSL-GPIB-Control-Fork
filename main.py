@@ -11,8 +11,8 @@ from PyQt5.QtWidgets import QMessageBox
 from drivers import functions, tsl_control_tool_gui
 
 # About
-__version__ = "1.2.1"
-__date__ = "2024-10-24"
+__version__ = "1.3.0"
+__date__ = "2024-10-29"
 __organization__ = "Santec Holdings Corporation"
 
 # Date and time for logging

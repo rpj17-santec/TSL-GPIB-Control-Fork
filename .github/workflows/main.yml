@@ -7,13 +7,10 @@ on:
         description: 'Branch'
         required: true
         default: 'main'
-      release:
-        description: 'Release Type'
-        required: true
-        type: choice
-        options:
-          - 'Latest Release'
-          - 'Pre-Release'
+      prerelease:
+        description: 'Pre-Release'
+        required: false
+        type: boolean
 
 defaults:
   run:
@@ -87,7 +84,7 @@ jobs:
           }
           
           # Run PyInstaller with the generated spec file
-          python -m PyInstaller $specFile
+          python -m PyInstaller --clean --windowed --icon=utils/santec.ico $specFile
 
       - name: Upload Executable Artifact
         uses: actions/upload-artifact@v4
@@ -99,18 +96,23 @@ jobs:
         id: set_tag_name
         run: |
           $branch = $env:GITHUB_REF
-          if ($branch -like "refs/heads/feature/*") {
-            $tag = "v$($env:version)-feature"
+      
+          if ($branch -eq "refs/heads/main") {
+            $tag = "v$($env:version)"
+          } elseif ($branch -eq "refs/heads/feature-lan") {
+            $tag = "v$($env:version)-lan"
+          } elseif ($branch -eq "refs/heads/feature-usb") {
+            $tag = "v$($env:version)-usb"
           } else {
             $tag = "v$($env:version)"
           }
+      
           echo "tag_name=$tag" >> $env:GITHUB_ENV
 
-      - name: Determine Release Type
-        id: determine_release
-        shell: pwsh
+      - name: Determine Pre-Release
+        id: determine_prerelease
         run: |
-          if ($env:github.event.inputs.release -eq "Pre-Release") {
+          if ($env:GITHUB_EVENT_INPUTS_PRERELEASE -eq "true") {
             echo "IS_PRERELEASE=true" >> $env:GITHUB_ENV
           } else {
             echo "IS_PRERELEASE=false" >> $env:GITHUB_ENV
@@ -121,7 +123,7 @@ jobs:
         with:
           tag_name: ${{ env.tag_name }}
           draft: false
-          prerelease: true
+          prerelease: false
           files: |
             dist/tsl-control.exe
             src.zip

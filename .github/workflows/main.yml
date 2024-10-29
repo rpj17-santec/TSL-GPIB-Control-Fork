@@ -31,8 +31,10 @@ jobs:
       - name: Extract version and organization
         id: extract_info
         run: |
+          date=$(python -c "import re; print(re.search(r'__date__ = \"(.*?)\"', open('main.py').read()).group(1))")
           version=$(python -c "import re; print(re.search(r'__version__ = \"(.*?)\"', open('main.py').read()).group(1))")
           organization=$(python -c "import re; print(re.search(r'__organization__ = \"(.*?)\"', open('main.py').read()).group(1))")
+          echo "date=$date" >> $GITHUB_ENV
           echo "version=$version" >> $GITHUB_ENV
           echo "organization=$organization" >> $GITHUB_ENV
 
@@ -47,7 +49,9 @@ jobs:
           echo "tag_name=$tag" >> $GITHUB_ENV
 
       - name: Debug Tag Name
-        run: "Tag Name: ${{ env.tag_name }}"
+        run: |
+          echo "Tag Name: ${{ env.tag_name }}"
+          echo "Date: ${{ env.date }}"
 
 #      - name: Update version in main.py
 #        run: |

@@ -16,6 +16,10 @@ on:
           - Latest Release
           - Pre-Release
 
+defaults:
+  run:
+    shell: pwsh
+
 jobs:
   build:
     runs-on: windows-latest
@@ -37,7 +41,6 @@ jobs:
 
       - name: Extract version and organization
         id: extract_info
-        shell: pwsh
         run: |
           $content = Get-Content -Path main.py -Raw
           $date = [regex]::Match($content, '__date__ = "(.*?)"').Groups[1].Value
@@ -48,14 +51,18 @@ jobs:
           echo "organization=$organization" >> $env:GITHUB_ENV
 
       - name: Create src directory
-        shell: pwsh
         run: |
+          # Create src directory if it doesn't exist
           New-Item -ItemType Directory -Force -Path src
-          Move-Item main.py, drivers, utils, README.md -Destination src
-          zip -r  src.zip  src/
+          
+          # Move files into the src directory
+          Move-Item -Path main.py, drivers, utils, README.md -Destination src -ErrorAction Stop
+          
+          # Zip the src directory
+          $zipFileName = "src.zip"
+          Compress-Archive -Path src\* -DestinationPath $zipFileName -Force
 
       - name: Generate Spec File
-        shell: pwsh
         run: |
           $pyinstallerPath = "pyinstaller"
           $scriptPath = "src/main.py"
@@ -71,7 +78,6 @@ jobs:
           & $pyinstallerPath --onefile --name=$exeName $scriptPath
 
       - name: Run Installer
-        shell: pwsh
         run: |
           $specFile = "tsl-control.spec"
           
@@ -84,28 +90,31 @@ jobs:
           # Run PyInstaller with the generated spec file
           python -m PyInstaller $specFile
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Executable Artifact
+        uses: actions/upload-artifact@v4
         with:
+          name: tsl-control
           path: dist/tsl-control.exe
 
       - name: Set Tag Name
         id: set_tag_name
         run: |
-          if [[ $GITHUB_REF == refs/heads/feature/* ]]; then
-            tag="v${{ env.version }}-feature"
-          else
-            tag="v${{ env.version }}"
-          fi
-          echo "tag_name=$tag" >> $GITHUB_ENV
+          $branch = $env:GITHUB_REF
+          if ($branch -like "refs/heads/feature/*") {
+            $tag = "v$($env:version)-feature"
+          } else {
+            $tag = "v$($env:version)"
+          }
+          echo "tag_name=$tag" >> $env:GITHUB_ENV
 
       - name: Determine Release Type
         id: determine_release
         run: |
-          if [[ "${{ github.event.inputs.release }}" == "Pre-Release" ]]; then
-            echo "IS_PRERELEASE=true" >> $GITHUB_ENV
-          else
-            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
-          fi
+          if ($env:GITHUB_EVENT_INPUTS_RELEASE -eq "Pre-Release") {
+            echo "IS_PRERELEASE=true" >> $env:GITHUB_ENV
+          } else {
+            echo "IS_PRERELEASE=false" >> $env:GITHUB_ENV
+          }
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -121,5 +130,5 @@ jobs:
 
       - name: Notify Release Type
         run: |
-          message = "A ${{ github.event.inputs.release }} has been created."
-          echo $message
+          $message = "A $($env:GITHUB_EVENT_INPUTS_RELEASE) has been created."
+          Write-Host $message

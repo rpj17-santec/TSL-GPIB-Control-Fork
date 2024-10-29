@@ -108,8 +108,9 @@ jobs:
 
       - name: Determine Release Type
         id: determine_release
+        shell: pwsh
         run: |
-          if ($env:github.event.inputs.branch -eq "Pre-Release") {
+          if ($env:github.event.inputs.release -eq "Pre-Release") {
             echo "IS_PRERELEASE=true" >> $env:GITHUB_ENV
           } else {
             echo "IS_PRERELEASE=false" >> $env:GITHUB_ENV

@@ -113,8 +113,8 @@ jobs:
 
       - name: Debug Pre-Release
         run: |
-          echo "Pre-release Input ${{ $env:GITHUB_EVENT_INPUTS_PRERELEASE }}"
-          echo "Pre-release ${{ env.IS_PRERELEASE }}"
+          echo "Pre-release Input: ${{ github.event.inputs.prerelease }}"
+          echo "Pre-release Value: ${{ env.IS_PRERELEASE }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

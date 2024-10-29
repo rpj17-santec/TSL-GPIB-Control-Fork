@@ -45,21 +45,12 @@ jobs:
           echo "version=$version" >> $GITHUB_ENV
           echo "organization=$organization" >> $GITHUB_ENV
 
-      - name: Update version in main.py
-        run: |
-          VERSION="1.3.0"  # Adjust this as needed
-          if [[ "${{ github.event.inputs.branch }}" == *"feature"* ]]; then
-            VERSION="${VERSION}-${{ github.event.inputs.branch }}"
-          fi
-          sed -i "s/^__version__ = .*/__version__ = '${VERSION}'/" main.py
-
       - name: Create src directory
+        shell: pwsh
         run: |
-          mkdir -p src
-          mv main.py src/
-          mv drivers src/
-          mv utils src/
-          mv README.md src/
+          New-Item -ItemType Directory -Force -Path src
+          Move-Item main.py, drivers, utils, README.md -Destination src
+          zip -r  src.zip  src/
 
       - name: Generate Spec File
         run: |
@@ -72,24 +63,6 @@ jobs:
         with:
           name: TSL-GPIB-Control-EXE
           path: dist/tsl-control.exe
-
-      - name: Move Installer
-        run: |
-          mkdir -p exe
-          mv dist/tsl-control.exe exe/
-
-      - name: Add to TSL-GPIB-Control and Zip
-        run: |
-          mkdir -p  TSL-GPIB-Control
-          mv src  TSL-GPIB-Control/
-          mv exe  TSL-GPIB-Control/
-          zip -r  TSL-GPIB-Control.zip  TSL-GPIB-Control/
-
-      - name: Upload Zip File
-        uses: actions/upload-artifact@v4
-        with:
-          name:  TSL-GPIB-Control.zip
-          path:  TSL-GPIB-Control.zip
 
       - name: Set Tag Name
         id: set_tag_name
@@ -116,14 +89,13 @@ jobs:
           tag_name: ${{ env.tag_name }}
           draft: false
           prerelease: ${{ env.IS_PRERELEASE }}
-          files: TSL-GPIB-Control.zip
+          files: |
+            dist/tsl-control.exe
+            src.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Notify Release Type
         run: |
-          if [[ "${{ github.event.inputs.release }}" == "Pre-Release" ]]; then
-            echo "A pre-release has been created."
-          else
-            echo "A latest release has been created."
-          fi
+          message = "A ${{ github.event.inputs.release }} has been created."
+          echo $message
